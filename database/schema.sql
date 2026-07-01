@@ -1,0 +1,1 @@
+-- MySQL schema placeholder aligned with the Prisma schema.

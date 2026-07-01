@@ -1,0 +1,89 @@
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "mysql"
+	url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+	EMPLOYEE
+	ADMIN
+}
+
+model User {
+	id             String          @id @default(cuid())
+	name           String          @db.VarChar(120)
+	email          String          @unique @db.VarChar(191)
+	password       String          @db.VarChar(255)
+	department     String?         @db.VarChar(120)
+	profileImage   String?         @db.VarChar(255)
+	role           UserRole        @default(EMPLOYEE)
+	createdAt      DateTime        @default(now())
+	sentKudos      Kudos[]         @relation("SentKudos")
+	receivedKudos  Kudos[]         @relation("ReceivedKudos")
+	notifications  Notification[]
+	moderatedKudos Kudos[]         @relation("ModeratedKudos")
+	moderationLogs ModerationLog[] @relation("AdminModerationLogs")
+
+	@@map("users")
+}
+
+model Department {
+	id   String @id @default(cuid())
+	name String @unique @db.VarChar(120)
+
+	@@map("departments")
+}
+
+model Kudos {
+	id               String   @id @default(cuid())
+	senderId         String
+	receiverId       String
+	message          String   @db.Text
+	createdAt        DateTime @default(now())
+	isVisible        Boolean  @default(true)
+	moderatedBy      String?
+	moderatedAt      DateTime?
+	moderationReason String?  @db.Text
+
+	sender    User   @relation("SentKudos", fields: [senderId], references: [id], onDelete: Cascade)
+	receiver  User   @relation("ReceivedKudos", fields: [receiverId], references: [id], onDelete: Cascade)
+	moderator User?  @relation("ModeratedKudos", fields: [moderatedBy], references: [id], onDelete: SetNull)
+	logs      ModerationLog[]
+
+	@@index([senderId])
+	@@index([receiverId])
+	@@index([isVisible])
+	@@map("kudos")
+}
+
+model Notification {
+	id        String   @id @default(cuid())
+	userId    String
+	message   String   @db.Text
+	isRead    Boolean  @default(false)
+	createdAt DateTime @default(now())
+
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	@@index([userId])
+	@@map("notifications")
+}
+
+model ModerationLog {
+	id        String   @id @default(cuid())
+	kudosId   String
+	adminId   String
+	action    String   @db.VarChar(80)
+	reason    String?  @db.Text
+	createdAt DateTime @default(now())
+
+	kudos Kudos @relation(fields: [kudosId], references: [id], onDelete: Cascade)
+	admin User  @relation("AdminModerationLogs", fields: [adminId], references: [id], onDelete: Cascade)
+
+	@@index([kudosId])
+	@@index([adminId])
+	@@map("moderation_logs")
+}

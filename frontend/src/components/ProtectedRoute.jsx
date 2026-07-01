@@ -1,0 +1,22 @@
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import Loader from './Loader';
+import { useAuth } from '../context/AuthContext';
+
+export default function ProtectedRoute({ allowedRoles = [] }) {
+	const { isAuthenticated, loading, user } = useAuth();
+	const location = useLocation();
+
+	if (loading) {
+		return <Loader fullScreen />;
+	}
+
+	if (!isAuthenticated) {
+		return <Navigate to="/login" replace state={{ from: location }} />;
+	}
+
+	if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+		return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />;
+	}
+
+	return <Outlet />;
+}
